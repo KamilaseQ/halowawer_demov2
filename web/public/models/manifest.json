@@ -1,0 +1,100 @@
+{
+  "osiedle": "osiedle-v10.glb",
+  "uwagi": "",
+  "zielen": "zielen-v10.glb",
+  "okolica": "okolica-v6.glb",
+  "wnetrza": {
+    "BLIZNIAK": "wnetrze-BLIZNIAK-v11.glb",
+    "SZEREG": "wnetrze-SZEREG-v5.glb"
+  },
+  "domy": {
+    "A": {
+      "wnetrze": "BLIZNIAK",
+      "macierz": [-1.0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 199.592, 0.0, 1.5, 1],
+      "lightmapy": {
+        "KOND_0__PODLOGA": "tex/wnetrza-BLIZNIAK-v10-K0_podloga-L.webp",
+        "KOND_0__SCIANY": "tex/wnetrza-BLIZNIAK-v10-K0_arch-L.webp",
+        "KOND_0__SUFIT": "tex/wnetrza-BLIZNIAK-v10-K0_arch-L.webp",
+        "KOND_0__OKNA": "tex/wnetrza-BLIZNIAK-v10-K0_arch-L.webp",
+        "KOND_0__WYPOSAZENIE": "tex/wnetrza-BLIZNIAK-v10-K0_wyp-L.webp",
+        "KOND_1__PODLOGA": "tex/wnetrza-BLIZNIAK-v10-K1_podloga-L.webp",
+        "KOND_1__SCIANY": "tex/wnetrza-BLIZNIAK-v10-K1_arch-L.webp",
+        "KOND_1__SUFIT": "tex/wnetrza-BLIZNIAK-v10-K1_arch-L.webp",
+        "KOND_1__OKNA": "tex/wnetrza-BLIZNIAK-v10-K1_arch-L.webp",
+        "KOND_1__WYPOSAZENIE": "tex/wnetrza-BLIZNIAK-v10-K1_wyp-L.webp",
+        "SCHODY": "tex/wnetrza-BLIZNIAK-v10-K0_arch-L.webp",
+        "KOND_1__WYPOSAZENIE_DYWAN": "tex/wnetrza-BLIZNIAK-v10-K1_wyp-L.webp"
+      }
+    },
+    "B": {
+      "wnetrze": "BLIZNIAK",
+      "macierz": null
+    },
+    "C": {
+      "wnetrze": "BLIZNIAK",
+      "macierz": [-1.0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 173.592, 0.31, -3.1, 1],
+      "lightmapy": {
+        "KOND_0__PODLOGA": "tex/wnetrza-BLIZNIAK-v10-K0_podloga-L.webp",
+        "KOND_0__SCIANY": "tex/wnetrza-BLIZNIAK-v10-K0_arch-L.webp",
+        "KOND_0__SUFIT": "tex/wnetrza-BLIZNIAK-v10-K0_arch-L.webp",
+        "KOND_0__OKNA": "tex/wnetrza-BLIZNIAK-v10-K0_arch-L.webp",
+        "KOND_0__WYPOSAZENIE": "tex/wnetrza-BLIZNIAK-v10-K0_wyp-L.webp",
+        "KOND_1__PODLOGA": "tex/wnetrza-BLIZNIAK-v10-K1_podloga-L.webp",
+        "KOND_1__SCIANY": "tex/wnetrza-BLIZNIAK-v10-K1_arch-L.webp",
+        "KOND_1__SUFIT": "tex/wnetrza-BLIZNIAK-v10-K1_arch-L.webp",
+        "KOND_1__OKNA": "tex/wnetrza-BLIZNIAK-v10-K1_arch-L.webp",
+        "KOND_1__WYPOSAZENIE": "tex/wnetrza-BLIZNIAK-v10-K1_wyp-L.webp",
+        "SCHODY": "tex/wnetrza-BLIZNIAK-v10-K0_arch-L.webp",
+        "KOND_1__WYPOSAZENIE_DYWAN": "tex/wnetrza-BLIZNIAK-v10-K1_wyp-L.webp"
+      }
+    },
+    "D": {
+      "wnetrze": "BLIZNIAK",
+      "macierz": [1.0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, -26.0, 0.31, -4.6, 1]
+    },
+    "E": {
+      "wnetrze": "SZEREG",
+      "macierz": [-1.0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 89.372, -0.05, 3.0, 1],
+      "lightmapy": {
+        "KOND_0__PODLOGA": "tex/wnetrza-SZEREG-v5-K0_podloga-L.webp",
+        "KOND_0__SCIANY": "tex/wnetrza-SZEREG-v5-K0_arch-L.webp",
+        "KOND_0__SUFIT": "tex/wnetrza-SZEREG-v5-K0_arch-L.webp",
+        "KOND_0__OKNA": "tex/wnetrza-SZEREG-v5-K0_arch-L.webp",
+        "KOND_0__WYPOSAZENIE": "tex/wnetrza-SZEREG-v5-K0_wyp-L.webp",
+        "KOND_1__PODLOGA": "tex/wnetrza-SZEREG-v5-K1_podloga-L.webp",
+        "KOND_1__SCIANY": "tex/wnetrza-SZEREG-v5-K1_arch-L.webp",
+        "KOND_1__SUFIT": "tex/wnetrza-SZEREG-v5-K1_arch-L.webp",
+        "KOND_1__OKNA": "tex/wnetrza-SZEREG-v5-K1_arch-L.webp",
+        "KOND_1__WYPOSAZENIE": "tex/wnetrza-SZEREG-v5-K1_wyp-L.webp",
+        "SCHODY": "tex/wnetrza-SZEREG-v5-K0_arch-L.webp",
+        "KOND_0__WYPOSAZENIE_LAMELE": "tex/wnetrza-SZEREG-v5-K0_wyp-L.webp",
+        "KOND_0__SCIANY_LAMELE": "tex/wnetrza-SZEREG-v5-K0_arch-L.webp",
+        "KOND_1__SCIANY_FRONT": "tex/wnetrza-SZEREG-v5-K1_arch-L.webp"
+      }
+    },
+    "F": {
+      "wnetrze": "SZEREG",
+      "macierz": [-1.0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 81.852, 0.0, 1.5, 1],
+      "lightmapy": {
+        "KOND_0__PODLOGA": "tex/wnetrza-SZEREG-v5-K0_podloga-L.webp",
+        "KOND_0__SCIANY": "tex/wnetrza-SZEREG-v5-K0_arch-L.webp",
+        "KOND_0__SUFIT": "tex/wnetrza-SZEREG-v5-K0_arch-L.webp",
+        "KOND_0__OKNA": "tex/wnetrza-SZEREG-v5-K0_arch-L.webp",
+        "KOND_0__WYPOSAZENIE": "tex/wnetrza-SZEREG-v5-K0_wyp-L.webp",
+        "KOND_1__PODLOGA": "tex/wnetrza-SZEREG-v5-K1_podloga-L.webp",
+        "KOND_1__SCIANY": "tex/wnetrza-SZEREG-v5-K1_arch-L.webp",
+        "KOND_1__SUFIT": "tex/wnetrza-SZEREG-v5-K1_arch-L.webp",
+        "KOND_1__OKNA": "tex/wnetrza-SZEREG-v5-K1_arch-L.webp",
+        "KOND_1__WYPOSAZENIE": "tex/wnetrza-SZEREG-v5-K1_wyp-L.webp",
+        "SCHODY": "tex/wnetrza-SZEREG-v5-K0_arch-L.webp",
+        "KOND_0__WYPOSAZENIE_LAMELE": "tex/wnetrza-SZEREG-v5-K0_wyp-L.webp",
+        "KOND_0__SCIANY_LAMELE": "tex/wnetrza-SZEREG-v5-K0_arch-L.webp",
+        "KOND_1__SCIANY_FRONT": "tex/wnetrza-SZEREG-v5-K1_arch-L.webp"
+      }
+    },
+    "G": {
+      "wnetrze": "SZEREG",
+      "macierz": null
+    }
+  }
+}

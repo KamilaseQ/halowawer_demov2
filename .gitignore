@@ -1,0 +1,51 @@
+# Repozytorium zawiera tylko to, co jest potrzebne do uruchomienia i zbudowania aplikacji (web/).
+# Źródła SketchUp, pipeline'y konwersji, materiały robocze, referencje i raporty QA zostają poza gitem
+# (to setki MB / GB danych roboczych, a aplikacja ich nie czyta).
+
+# --- wszystko w katalogu głównym jest ignorowane, poza wyjątkami poniżej ---
+/*
+!/.gitignore
+!/.gitattributes
+!/README.md
+!/web/
+
+# --- zależności, build, cache ---
+node_modules/
+/web/dist/
+/web/.vite/
+*.tsbuildinfo
+*.log
+npm-debug.log*
+
+# --- system / edytory ---
+.DS_Store
+Thumbs.db
+desktop.ini
+.vscode/
+.idea/
+*.swp
+
+# --- pliki robocze, które mogłyby trafić do web/ ---
+*.skp
+*.skb
+*.blend
+*.blend1
+*.tmp
+*.bak
+
+# --- modele: tylko wersje wskazane w web/public/models/manifest.json ---
+# Po podmianie wersji w manifeście dopisz nowe pliki do listy wyjątków (stare wersje zostają lokalnie do porównań QA).
+/web/public/models/*.glb
+!/web/public/models/osiedle-v10.glb
+!/web/public/models/zielen-v10.glb
+!/web/public/models/okolica-v6.glb
+!/web/public/models/wnetrze-BLIZNIAK-v11.glb
+!/web/public/models/wnetrze-SZEREG-v5.glb
+
+# lightmapy wnętrz: GLB wskazują wersje bez -L, manifest (domy lustrzane) wersje -L
+/web/public/models/tex/*
+!/web/public/models/tex/wnetrza-BLIZNIAK-v10-*.webp
+!/web/public/models/tex/wnetrza-SZEREG-v5-*.webp
+
+# HDRI nieużywane przez pory dnia (dostępne tylko testowo przez ?nochdr=)
+/web/public/env/qwantani_dusk_1_puresky.hdr
