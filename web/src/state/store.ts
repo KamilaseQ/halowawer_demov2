@@ -37,9 +37,18 @@ interface Stan {
   scenaGotowa: boolean;
   /** zieleń i okolica (pliki z manifestu) wczytane */
   dodatkiGotowe: boolean;
+  /** NOWE_LADOWANIE: postęp w bajtach (pobrane / razem) i etap ekranu ładowania; rozgrzane = shadery skompilowane */
+  bajtyPobrane: number;
+  bajtyRazem: number;
+  etapLadowania: string;
+  rozgrzane: boolean;
+  /** liczba lightmap wnętrza w trakcie dekodowania (komunikat przy wejściu do domu) */
+  lmLaduja: number;
   /** wnętrze bieżącego domu: null = dom nie ma wnętrza w manifeście */
   wnetrzeGotowe: boolean | null;
   postep: number;
+  /** kondygnacja, na której jest kamera w spacerze po domu (pigułka pięter); null poza spacerem */
+  poziomSpaceru: number | null;
   galeria: number | null;
   set: (p: Partial<Stan>) => void;
 }
@@ -61,8 +70,14 @@ export const useStan = create<Stan>((set) => ({
   punkty: [],
   scenaGotowa: false,
   dodatkiGotowe: false,
+  bajtyPobrane: 0,
+  bajtyRazem: 0,
+  etapLadowania: "Pobieranie modeli",
+  rozgrzane: false,
+  lmLaduja: 0,
   wnetrzeGotowe: null,
   postep: 0,
+  poziomSpaceru: null,
   galeria: null,
   set: (p) => set(p),
 }));

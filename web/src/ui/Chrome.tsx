@@ -4,7 +4,7 @@ import { useStan, nav, type Kond } from "../state/store";
 import { domById, fmtCena, fmtPow, GALERIA_WNETRZA, GALERIA_ZEWN } from "../data/domy";
 import { rig } from "../three/CameraRig";
 import { dzien, fmtGodz, kierunek, MIESIACE, MIESIACE_DOP, MIESIACE_KR, sunPosition } from "../lib/slonce";
-import { reg } from "../three/models";
+import { reg, NOWE_LADOWANIE } from "../three/models";
 import {
   IcoSun, IcoCamera, IcoChevL, IcoChevR, IcoCube, IcoDown, IcoEye, IcoEyeOff, IcoHome, IcoImage, IcoLeft, IcoMinus, IcoPlan, IcoPlus, IcoUp, IcoWalk, IcoX,
 } from "./icons";
@@ -111,7 +111,7 @@ export function Floors() {
   if (s.widok !== "dom" || !s.dom) return null;
   const hasInt = !!reg.wnetrza.get(s.dom);
   const walk = s.tryb === "spacer";
-  const cur: Kond = walk ? (currentWalkLevel() as Kond) : s.kond;
+  const cur: Kond = walk ? ((s.poziomSpaceru ?? currentWalkLevel()) as Kond) : s.kond;
   const choose = (k: Kond) => {
     if (!walk && k === s.kond && s.tryb === "model") return rig.reset();
     if (walk) {
@@ -151,9 +151,9 @@ function currentWalkLevel(): number | "dom" {
   if (!w) return "dom";
   const p = w.punkty.find((x) => x.id === s.punkt);
   if (p?.kond !== undefined) return p.kond;
-  const y = rig.controls?.camera.position.y ?? 0;
+  const y = (rig.controls?.camera.position.y ?? 0) - 1.6;
   const levels = Object.entries(w.poziomy).sort((a, b) => b[1] - a[1]);
-  for (const [k, lv] of levels) if (y > lv + 0.5) return +k;
+  for (const [k, lv] of levels) if (y > lv - 0.6) return +k;
   return 0;
 }
 
@@ -335,10 +335,43 @@ export function Hint() {
   return <div className="hint">{text}</div>;
 }
 
+/* ---------- światło wnętrza w trakcie dekodowania (NOWE_LADOWANIE) ---------- */
+export function LadowanieWnetrza() {
+  const ile = useStan((s) => s.lmLaduja);
+  const widok = useStan((s) => s.widok);
+  const tryb = useStan((s) => s.tryb);
+  const kond = useStan((s) => s.kond);
+  if (!NOWE_LADOWANIE || !ile || widok !== "dom" || (kond === "dom" && tryb !== "spacer" && tryb !== "rzut")) return null;
+  return <div className="ladowanie-wnetrza glass">Wczytywanie światła wnętrza…</div>;
+}
+
 /* ---------- ładowanie ---------- */
 export function Loader() {
   const postep = useProgress((p) => p.progress);
   const gotowa = useStan((s) => s.scenaGotowa);
+  // osobne selektory (obiekt z selektora w zustand v5 dawałby nowy snapshot co render i pętlę renderów)
+  const nowe = {
+    p: useStan((s) => s.bajtyPobrane),
+    r: useStan((s) => s.bajtyRazem),
+    etap: useStan((s) => s.etapLadowania),
+    ok: useStan((s) => s.rozgrzane),
+    dodatki: useStan((s) => s.dodatkiGotowe),
+  };
+  if (NOWE_LADOWANIE) {
+    // pełny ekran: makieta pokazuje się dopiero, gdy wszystko jest pobrane, przygotowane i skompilowane
+    const proc = nowe.r ? Math.min(100, (nowe.p / nowe.r) * 92 + (gotowa ? 3 : 0) + (nowe.dodatki ? 2 : 0) + (nowe.ok ? 3 : 0)) : 0;
+    const mb = (b: number) => (b / 1e6).toFixed(0);
+    return (
+      <div className={`ekran-ladowania${nowe.ok ? " done" : ""}`}>
+        <div className="karta glass">
+          <div className="tytul">Wczytywanie makiety 3D</div>
+          <span className="bar"><i style={{ width: `${Math.max(3, proc)}%` }} /></span>
+          <div className="liczby">{nowe.r ? `${mb(nowe.p)} / ${mb(nowe.r)} MB · ${Math.round(proc)}%` : "…"}</div>
+          <div className="etap">{nowe.p >= nowe.r && nowe.r ? (nowe.ok ? "Gotowe" : nowe.etap === "Pobieranie modeli" ? "Przygotowanie modeli" : nowe.etap) : nowe.etap}</div>
+        </div>
+      </div>
+    );
+  }
   return (
     <div className={`loader glass${gotowa ? " done" : ""}`}>
       Wczytywanie makiety 3D

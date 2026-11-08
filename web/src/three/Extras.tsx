@@ -13,7 +13,9 @@ function prepareExtra(scene: THREE.Object3D, kind: "zielen" | "okolica") {
     const fix = (mat: THREE.Material) => {
       const x = przygotujMaterial(m, mat) as THREE.MeshStandardMaterial;
       // karty roślin: alfa jako maska (MASK z GLB). Karty są jednostronne i zdublowane w geometrii
-      // z ustawionymi normalnymi (96), więc NIE wymuszamy DoubleSide; bez MSAA nie ma alphaToCoverage.
+      // z ustawionymi normalnymi (96), więc NIE wymuszamy DoubleSide. alphaToCoverage (MSAA ×4) sprawdzone 08.11:
+      // liście robią się ażurowe, a biały kolor tekstury pod alfą prześwituje mocniej. Zostaje twardy próg;
+      // obwódkę usuwa rozszerzenie koloru w teksturach (96, zielen-v13).
       if (x.map && (x.transparent || x.alphaTest > 0)) {
         x.transparent = false;
         x.alphaTest = x.alphaTest > 0 ? x.alphaTest : 0.5;

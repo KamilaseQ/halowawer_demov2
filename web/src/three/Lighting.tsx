@@ -4,7 +4,8 @@ import { useFrame, useThree } from "@react-three/fiber";
 import { suspend } from "suspend-react";
 import { HDRLoader } from "three/examples/jsm/loaders/HDRLoader.js";
 import { useStan, type Pora } from "../state/store";
-import { reg, useManifest } from "./models";
+import { reg, useManifest, NOWE_LADOWANIE, postepPliku, zakonczPlik } from "./models";
+import { WARSTWA_WNETRZ } from "./lustra";
 import { lightmapMats } from "./Interiors";
 import { sunPosition, KAT_PN } from "../lib/slonce";
 
@@ -75,7 +76,8 @@ export const PORY: Record<Pora, PoraCfg> = (window as unknown as { __pory?: Reco
 const rgbe = new HDRLoader();
 function useHdr(url: string) {
   return suspend(async () => {
-    const t = await rgbe.loadAsync(url);
+    const t = await rgbe.loadAsync(url, NOWE_LADOWANIE ? (e: ProgressEvent) => postepPliku(url, e.loaded, e.total) : undefined);
+    if (NOWE_LADOWANIE) zakonczPlik(url);
     t.mapping = THREE.EquirectangularReflectionMapping;
     return t;
   }, ["hdr", url]);
@@ -93,8 +95,11 @@ export function Lighting() {
   // na start tylko niebo bieżącej pory (suspend); pozostałe doładowują się w tle po pokazaniu sceny
   const startPora = useRef<Pora>(useStan.getState().naslonecznienie ? "dzien" : useStan.getState().pora).current;
   const startTex = useHdr(PORY[startPora].hdr);
-  const [tex, setTex] = useState<Partial<Record<Pora, THREE.Texture>>>(() => ({ [startPora]: startTex }));
+  // NOWE_LADOWANIE: wszystkie trzy pory za ekranem ładowania (przełączenie pory bez doczytywania w trakcie oglądania)
+  const wszystkie = NOWE_LADOWANIE ? (["dzien", "rano", "noc"] as Pora[]).map((p) => [p, useHdr(PORY[p].hdr)] as const) : [];
+  const [tex, setTex] = useState<Partial<Record<Pora, THREE.Texture>>>(() => (NOWE_LADOWANIE ? Object.fromEntries(wszystkie) : { [startPora]: startTex }));
   useEffect(() => {
+    if (NOWE_LADOWANIE) return;
     const t = setTimeout(() => {
       for (const p of ["dzien", "rano", "noc"] as Pora[]) {
         if (p === startPora) continue;
@@ -110,6 +115,12 @@ export function Lighting() {
   const hemi = useRef<THREE.HemisphereLight>(null);
   const fill = useRef<THREE.DirectionalLight>(null);
   const top = useRef<THREE.DirectionalLight>(null);
+  // światła także dla kamery odbicia luster (warstwa wnętrza): bez tego odbite elewacje miały tylko światło otoczenia
+  // (wnętrza z lightmapą i tak ignorują światło bezpośrednie)
+  useEffect(() => {
+    if (!NOWE_LADOWANIE) return;
+    for (const l of [sun.current, hemi.current, fill.current, top.current]) l?.layers.enable(WARSTWA_WNETRZ);
+  }, []);
   const sunAz = useRef(PORY[pora].az);
   const cur = useRef<{ sunI: number; envI: number; okna: number; lampy: number; dir: THREE.Vector3; col: THREE.Color; fog: THREE.Color; exp: number; hemi?: number }>({ sunI: PORY[pora].sunI, envI: PORY[pora].envI, okna: PORY[pora].okna, lampy: PORY[pora].lampy, dir: dirFrom(PORY[pora].az, PORY[pora].el), col: new THREE.Color(PORY[pora].sun), fog: new THREE.Color(PORY[pora].fog), exp: PORY[pora].exposure });
 
@@ -243,7 +254,10 @@ export function Lighting() {
       m.envMapRotation.copy(scene.environmentRotation);
       m.envMapIntensity = lmDbg.__lmEnv ?? LM_ENV;
     }
-    if (moving) invalidate();
+    if (moving) {
+      invalidate();
+      reg.odswiezCienie();
+    }
   });
 
   return (
@@ -341,6 +355,11 @@ function skyDomeMaterial() {
 
 function SkyDome({ material }: { material: THREE.ShaderMaterial }) {
   const ref = useRef<THREE.Mesh>(null);
+  // niebo także w odbiciu luster (kamera odbicia widzi tylko warstwę wnętrza): okno w lustrze pokazuje niebo,
+  // a nie ciemne tło (b7 iter32, łazienka B)
+  useEffect(() => {
+    if (NOWE_LADOWANIE) ref.current?.layers.enable(WARSTWA_WNETRZ);
+  }, []);
   useFrame(({ camera }) => {
     ref.current?.position.copy(camera.position);
   });

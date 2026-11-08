@@ -1,10 +1,16 @@
 import * as THREE from "three";
-import { useEffect, useMemo } from "react";
-import { useGLB, useManifest, modelUrl, reg, type WnetrzeInfo, type Kadr } from "./models";
-import { szyba } from "./materials";
+import { Suspense, useEffect, useMemo } from "react";
+import { useFrame } from "@react-three/fiber";
+import { zbudujLustra, synchronizujLustra, WARSTWA_WNETRZ } from "./lustra";
+import { useGLB, useManifest, modelUrl, reg, anizotropiaMax, NOWE_LADOWANIE, LM_KTX2, ktx2Loader, postepPliku, zakonczPlik, zglosPliki, type WnetrzeInfo, type Kadr } from "./models";
+import { szybaWnetrze } from "./materials";
 import { useStan, type PunktSpaceru } from "../state/store";
 import type { DomId } from "../data/domy";
 import { rig } from "./CameraRig";
+import { utworzPrzekroj, ustawPrzekroj } from "./przekroj";
+
+/** wysokość cięcia rzutu nad posadzką kondygnacji (STANDARD_WIZUALNY §8a) */
+const CIECIE_RZUTU = 1.3;
 
 /** Który plik wnętrza i jaka macierz dla domu (manifest.domy). */
 export function interiorFor(man: ReturnType<typeof useManifest>, id: DomId | null) {
@@ -23,17 +29,99 @@ const texLoader = new THREE.TextureLoader();
 const lmCache = new Map<string, THREE.Texture>();
 export const lightmapMats: THREE.MeshStandardMaterial[] = [];
 const LM_TINT: [number, number, number] = [1.04, 1.0, 0.94];
+// NOWE_LADOWANIE: dekodowanie lightmap WebP w tle (createImageBitmap), a nie w wątku głównym przy wysyłce na GPU
+const bitmapLoader = new THREE.ImageBitmapLoader().setOptions({ imageOrientation: "none", premultiplyAlpha: "none", colorSpaceConversion: "none" });
 function lmTexture(url: string) {
   let t = lmCache.get(url);
+  if (!t && NOWE_LADOWANIE) {
+    // sam obiekt tekstury (shadery kompilują się z wariantem lightmapy już przy rozgrzewce),
+    // a obraz dekodujemy dopiero, gdy dom zostanie wybrany (zaladujLightmapy): lightmapy wszystkich
+    // domów naraz zajęłyby ok. 1,4 GB po rozpakowaniu
+    const tex = new THREE.Texture();
+    tex.flipY = false;
+    tex.colorSpace = THREE.SRGBColorSpace;
+    tex.channel = 1;
+    tex.anisotropy = anizotropiaMax();
+    tex.generateMipmaps = true;
+    tex.userData.url = url;
+    lmCache.set(url, tex);
+    return tex;
+  }
   if (!t) {
     t = texLoader.load(url);
     t.flipY = false;
     t.colorSpace = THREE.SRGBColorSpace;
     t.channel = 1;
+    t.anisotropy = anizotropiaMax();
     lmCache.set(url, t);
   }
   return t;
 }
+/** LM_KTX2: wszystkie lightmapy wnętrz (wszystkie domy, warianty -L i r) jako KTX2 za ekranem ładowania.
+    Tekstura-zaślepka z lmTexture zostaje podmieniona w materiałach na skompresowaną (po adresie). */
+let lmKtx2Obietnica: Promise<void> | null = null;
+export function wczytajLightmapyKtx2(): Promise<void> {
+  if (lmKtx2Obietnica) return lmKtx2Obietnica;
+  const zaslepki = [...lmCache.values()].filter((t) => t.userData.url);
+  const adresy = zaslepki.map((t) => (t.userData.url as string).replace(/\.webp$/, ".ktx2"));
+  zglosPliki(adresy);
+  lmKtx2Obietnica = Promise.all(
+    zaslepki.map((zas, i) =>
+      new Promise<void>((ok) => {
+        if (!ktx2Loader) return ok();
+        ktx2Loader.load(
+          adresy[i],
+          (tex) => {
+            tex.colorSpace = THREE.SRGBColorSpace;
+            tex.channel = 1;
+            tex.flipY = false;
+            tex.anisotropy = anizotropiaMax();
+            tex.userData.url = zas.userData.url;
+            tex.userData.ladowanie = true;
+            for (const m of lightmapMats) if (m.lightMap === zas) m.lightMap = tex;
+            lmCache.set(zas.userData.url as string, tex);
+            zakonczPlik(adresy[i]);
+            ok();
+          },
+          (e) => postepPliku(adresy[i], e.loaded, e.total),
+          () => ok(),
+        );
+      }),
+    ),
+  ).then(() => undefined);
+  return lmKtx2Obietnica;
+}
+
+/** NOWE_LADOWANIE: dekodowanie (w tle) lightmap jednego domu, gdy zostanie wybrany. */
+function zaladujLightmapy(info: WnetrzeInfo) {
+  const tekstury = new Set<THREE.Texture>();
+  const zbierz = (m: THREE.Material | THREE.Material[]) => {
+    for (const x of Array.isArray(m) ? m : [m]) {
+      const lm = (x as THREE.MeshStandardMaterial).lightMap;
+      if (lm?.userData.url && !lm.userData.ladowanie) tekstury.add(lm);
+    }
+  };
+  info.root.traverse((o) => { const m = (o as THREE.Mesh).material; if (m) zbierz(m); });
+  for (const d of info.drzwi ?? []) for (const l of d.lm ?? []) zbierz(l.render);
+  for (const tex of tekstury) {
+    tex.userData.ladowanie = true;
+    reg.lmOczekujace++;
+    useStan.setState({ lmLaduja: reg.lmOczekujace });
+    bitmapLoader.load(
+      tex.userData.url as string,
+      (bmp) => {
+        tex.image = bmp;
+        tex.needsUpdate = true;
+        reg.lmOczekujace--;
+        useStan.setState({ lmLaduja: reg.lmOczekujace });
+        rig.invalidate();
+      },
+      undefined,
+      () => { reg.lmOczekujace--; useStan.setState({ lmLaduja: reg.lmOczekujace }); },
+    );
+  }
+}
+
 function applyLightmap(root: THREE.Object3D, url: string, intensity: number) {
   const tex = lmTexture(url);
   const clones = new Map<THREE.Material, THREE.Material>();
@@ -90,13 +178,15 @@ function prepareInterior(src: THREE.Object3D, macierz: number[] | null, lightmap
     holder.matrixAutoUpdate = false;
     holder.matrix.copy(m);
     holder.updateMatrixWorld(true);
-    return collect(holder);
+    return collect(holder, lightmapy);
   }
   root.updateMatrixWorld(true);
-  return collect(root);
+  return collect(root, lightmapy);
 }
 
-function collect(root: THREE.Object3D): WnetrzeInfo {
+const KOLEJNOSC = ["WEJSCIE", "HOL", "SALON", "JADALNIA", "KUCHNIA", "WC", "GARAZ", "SYPIALNIA", "POKOJ_DZIECKA", "POKOJ", "GABINET", "LAZIENKA"];
+
+function collect(root: THREE.Object3D, lightmapy?: Record<string, string>): WnetrzeInfo {
   const info: WnetrzeInfo = { root, kadry: [], poziomy: {}, podlogi: [], punkty: [], kond: {}, sufity: {} };
   root.updateMatrixWorld(true);
   root.traverse((o) => {
@@ -126,16 +216,74 @@ function collect(root: THREE.Object3D): WnetrzeInfo {
       o.getWorldPosition(p);
       const et = (o.userData?.etykieta as string) || pt[2].replace(/_/g, " ").toLowerCase().replace(/^./, (c) => c.toUpperCase());
       info.punkty.push({ id: o.name, etykieta: et, pos: [p.x, p.y, p.z], kond: +pt[1] } satisfies PunktSpaceru);
+      // opcjonalny start spaceru dla punktu (oko i cel w układzie glTF wnętrza)
+      const ex = o.userData ?? {};
+      if (Array.isArray(ex.spacer) && Array.isArray(ex.cel)) {
+        (info.startyPunktow ??= {})[o.name] = {
+          pos: new THREE.Vector3(...(ex.spacer as [number, number, number])).applyMatrix4(root.matrixWorld),
+          cel: new THREE.Vector3(...(ex.cel as [number, number, number])).applyMatrix4(root.matrixWorld),
+        };
+      }
+    }
+    // skrzydło drzwi: w GLB otwarte (spacer), extras.render = poza z renderów (kadry 1:1)
+    if (/^DRZWI_/.test(o.name)) {
+      const r = o.userData?.render;
+      if (Array.isArray(r) && r.length === 4) {
+        const d: NonNullable<WnetrzeInfo["drzwi"]>[number] = { obj: o, otwarte: o.quaternion.clone(), render: new THREE.Quaternion(...(r as [number, number, number, number])).normalize() };
+        // druga lightmapa skrzydła (poza z renderów): GLB extras.lightMapRender, w domach lustrzanych manifest lightmapy["DRZWI_…#render"]
+        const lmUrl = lightmapy?.[`${o.name}#render`] ?? (o.userData?.lightMapRender as string | undefined);
+        if (lmUrl) {
+          const tex = lmTexture(modelUrl(lmUrl));
+          d.lm = [];
+          o.traverse((x) => {
+            const m = x as THREE.Mesh;
+            if (!m.isMesh) return;
+            const zRender = (src: THREE.Material) => {
+              const sm = src as THREE.MeshStandardMaterial;
+              if (!sm.lightMap) return src;
+              const c = sm.clone();
+              c.lightMap = tex;
+              c.onBeforeCompile = sm.onBeforeCompile;
+              c.customProgramCacheKey = sm.customProgramCacheKey;
+              lightmapMats.push(c);
+              return c;
+            };
+            d.lm!.push({ mesh: m, otwarte: m.material, render: Array.isArray(m.material) ? m.material.map(zRender) : zRender(m.material) });
+          });
+        }
+        (info.drzwi ??= []).push(d);
+      }
     }
     const mesh = o as THREE.Mesh;
     if (mesh.isMesh) {
+      if (NOWE_LADOWANIE) mesh.layers.enable(WARSTWA_WNETRZ);
       mesh.castShadow = true;
       mesh.receiveShadow = true;
-      const fix = (mat: THREE.Material) => ((mat.name || "").toUpperCase().startsWith("SZYB") ? szyba(mat) : mat);
+      const fix = (mat: THREE.Material) => ((mat.name || "").toUpperCase().startsWith("SZYB") ? szybaWnetrze(mat) : mat);
       mesh.material = Array.isArray(mesh.material) ? mesh.material.map(fix) : fix(mesh.material);
     }
   });
-  info.punkty.sort((a, b) => (a.kond ?? 0) - (b.kond ?? 0));
+  // kolejność jak w drodze przez dom (wejście → strefa dzienna → reszta), a nie alfabetyczna
+  const rank = (id: string) => {
+    const i = KOLEJNOSC.findIndex((k) => id.replace(/^PKT_\d+_/, "").startsWith(k));
+    return i < 0 ? KOLEJNOSC.length : i;
+  };
+  info.punkty.sort((a, b) => (a.kond ?? 0) - (b.kond ?? 0) || rank(a.id) - rank(b.id));
+  // poziom posadzki kondygnacji z punktów PKT (stoją na posadzce); ramka siatek PODLOGA bywała zawyżona
+  // (progi, podesty), przez co pigułka pięter pokazywała „1” na parterze
+  for (const pt of info.punkty) if (pt.kond !== undefined) info.poziomy[pt.kond] = pt.pos[1];
+  info.przekroj = utworzPrzekroj(root);
+  // lustra (materiał LUSTRO*): odbicie planarne w osobnej grupie w układzie świata
+  const lustra: THREE.Mesh[] = [];
+  root.traverse((o) => {
+    const m = o as THREE.Mesh;
+    if (!m.isMesh) return;
+    const mats = Array.isArray(m.material) ? m.material : [m.material];
+    if (mats.some((x) => /^LUSTRO/i.test(x.name || ""))) lustra.push(m);
+  });
+  info.lustraGrupa = new THREE.Group();
+  info.lustraGrupa.name = "LUSTRA";
+  info.lustra = zbudujLustra(lustra, info.lustraGrupa);
   return info;
 }
 
@@ -162,10 +310,19 @@ function HouseInterior({ id, file, macierz, lightmapy }: { id: DomId; file: stri
     const apply = () => {
       const s = useStan.getState();
       const active = s.widok === "dom" && s.dom === id;
+      if (NOWE_LADOWANIE && active) {
+        // wszystkie domy są zamontowane na stałe: punkty i lightmapy bierzemy przy wyborze domu
+        if (!LM_KTX2) zaladujLightmapy(info);
+        if (s.punkty !== info.punkty) s.set({ punkty: info.punkty });
+      }
       const inside = active && (s.kond !== "dom" || s.tryb === "spacer" || s.tryb === "rzut");
       info.root.visible = inside;
       const shell = reg.domy.get(id);
       if (shell) shell.obj.visible = !inside;
+      // Rzut: przekrój na 1,3 m nad posadzką wybranej kondygnacji, z zamkniętymi wierzchami ścian
+      const rzut = inside && s.tryb === "rzut";
+      const lvl = s.kond === "dom" ? 0 : (s.kond as number);
+      if (info.przekroj) ustawPrzekroj(info.przekroj, rzut ? (info.poziomy[lvl] ?? 0) + CIECIE_RZUTU : null, lvl);
       if (!inside) return;
       const walk = s.tryb === "spacer";
       const top = walk ? 99 : (s.kond as number);
@@ -178,10 +335,21 @@ function HouseInterior({ id, file, macierz, lightmapy }: { id: DomId; file: stri
       unsub();
       const shell = reg.domy.get(id);
       if (shell) shell.obj.visible = true;
+      if (info.przekroj) ustawPrzekroj(info.przekroj, null);
     };
   }, [id, info]);
 
-  return <primitive object={info.root} />;
+  // lustra: widoczne razem z kondygnacją (sprawdzane co klatkę, tanie)
+  useFrame(() => {
+    if (info.lustra?.length) synchronizujLustra(info.lustra);
+  });
+
+  return (
+    <>
+      <primitive object={info.root} />
+      {info.lustraGrupa && <primitive object={info.lustraGrupa} />}
+    </>
+  );
 }
 
 export function Interiors() {
@@ -193,6 +361,28 @@ export function Interiors() {
     const has = !!cfg && !!dom && reg.wnetrza.has(dom);
     useStan.getState().set({ wnetrzeGotowe: cfg ? has : null });
   }, [dom, widok, !!cfg]);
+  if (NOWE_LADOWANIE) {
+    // wszystkie domy z wnętrzami zbudowane od razu (ukryte): wejście do domu to tylko zmiana widoczności
+    const ids = Object.keys(man.domy ?? {}) as DomId[];
+    return (
+      <>
+        {ids.map((id) => {
+          const c = interiorFor(man, id);
+          return c ? (
+            <Suspense key={id} fallback={null}>
+              <HouseInterior id={id} file={c.file} macierz={c.macierz} lightmapy={c.lightmapy} />
+            </Suspense>
+          ) : null;
+        })}
+      </>
+    );
+  }
   if (!cfg || !dom) return null;
-  return <HouseInterior key={dom} id={dom} file={cfg.file} macierz={cfg.macierz} lightmapy={cfg.lightmapy} />;
+  // własna granica Suspense: Interiors zatwierdza się od razu, więc wnetrzeGotowe = false przez cały czas
+  // wczytywania (wcześniej było null i __ready / kamera uznawały dom za gotowy przed wczytaniem wnętrza)
+  return (
+    <Suspense fallback={null}>
+      <HouseInterior key={dom} id={dom} file={cfg.file} macierz={cfg.macierz} lightmapy={cfg.lightmapy} />
+    </Suspense>
+  );
 }

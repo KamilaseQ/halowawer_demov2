@@ -36,16 +36,20 @@ desktop.ini
 # --- modele: tylko wersje wskazane w web/public/models/manifest.json ---
 # Po podmianie wersji w manifeście dopisz nowe pliki do listy wyjątków (stare wersje zostają lokalnie do porównań QA).
 /web/public/models/*.glb
-!/web/public/models/osiedle-v10.glb
-!/web/public/models/zielen-v10.glb
-!/web/public/models/okolica-v6.glb
-!/web/public/models/wnetrze-BLIZNIAK-v11.glb
-!/web/public/models/wnetrze-SZEREG-v5.glb
+!/web/public/models/osiedle-v19.2.glb
+!/web/public/models/zielen-v13.glb
+!/web/public/models/okolica-v9.glb
+!/web/public/models/wnetrze-BLIZNIAK-v18.glb
+!/web/public/models/wnetrze-SZEREG-v12.glb
+# manifest kandydata do QA (?manifest=manifest-kandydat.json) nie jest częścią aplikacji
+/web/public/models/manifest-kandydat*.json
 
-# lightmapy wnętrz: GLB wskazują wersje bez -L, manifest (domy lustrzane) wersje -L
+# lightmapy wnętrz: GLB wskazują wersje bez -L, manifest (domy lustrzane) wersje -L; -vNr = skrzydła drzwi w pozie z renderu
 /web/public/models/tex/*
-!/web/public/models/tex/wnetrza-BLIZNIAK-v10-*.webp
-!/web/public/models/tex/wnetrza-SZEREG-v5-*.webp
+!/web/public/models/tex/wnetrza-BLIZNIAK-v18-*.webp
+!/web/public/models/tex/wnetrza-BLIZNIAK-v18r-*.webp
+!/web/public/models/tex/wnetrza-SZEREG-v12-*.webp
+!/web/public/models/tex/wnetrza-SZEREG-v12r-*.webp
 
 # HDRI nieużywane przez pory dnia (dostępne tylko testowo przez ?nochdr=)
 /web/public/env/qwantani_dusk_1_puresky.hdr

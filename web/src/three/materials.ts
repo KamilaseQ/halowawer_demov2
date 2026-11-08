@@ -78,6 +78,29 @@ export function szyba(src: THREE.Material): THREE.MeshPhysicalMaterial {
   return m;
 }
 
+/** Szyba okna we wnętrzu: przezroczysta, z lekkim odbiciem. Materiał okna elewacji (szyba()) jest
+    nieprzezroczysty (firany i ciemne wnętrze widziane z zewnątrz), więc od środka okno było granatową płytą. */
+const szybaWnCache = new Map<string, THREE.MeshPhysicalMaterial>();
+export function szybaWnetrze(src: THREE.Material): THREE.MeshPhysicalMaterial {
+  let m = szybaWnCache.get(src.name);
+  if (!m) {
+    m = new THREE.MeshPhysicalMaterial({
+      name: src.name,
+      color: new THREE.Color("#f4f6f5"),
+      metalness: 0,
+      roughness: 0.03,
+      transparent: true,
+      opacity: 0.1,
+      depthWrite: false,
+      side: THREE.DoubleSide,
+      envMapIntensity: 0.6,
+      specularIntensity: 1,
+    });
+    szybaWnCache.set(src.name, m);
+  }
+  return m;
+}
+
 export function przygotujMaterial(mesh: THREE.Mesh, mat: THREE.Material): THREE.Material {
   const n = (mat.name || "").toUpperCase();
   if (n.startsWith("SZYB") || n.startsWith("SZYBA")) return szyba(mat);
@@ -88,8 +111,25 @@ export function przygotujMaterial(mesh: THREE.Mesh, mat: THREE.Material): THREE.
     sm.depthWrite = true;
     sm.side = THREE.DoubleSide;
   }
+  // osiedle-v14: lekko wykończone domy kontekstu (decyzja użytkownika 08.11): KONTEKST_SCIANA / _DACH / _OKNO
+  // biorą kolor i chropowatość z GLB; szyba okna z mocniejszym refleksem nieba (envMapIntensity). Dokładnie „KONTEKST” (v12/v13,
+  // duchy okolicy) zostaje neutralną bielą poniżej.
+  if (n.startsWith("KONTEKST_")) {
+    const okno = n.startsWith("KONTEKST_OKNO");
+    return new THREE.MeshStandardMaterial({
+      name: mat.name,
+      color: sm.color ? sm.color.clone() : new THREE.Color("#e7e4de"),
+      roughness: sm.roughness ?? (okno ? 0.38 : 0.95), // z GLB (okno 0,38 wg b7: 0,35–0,4)
+      metalness: 0,
+      side: mat.side,
+      envMapIntensity: okno ? 1.0 : 0.6,
+    });
+  }
   if (n.startsWith("KONTEKST")) {
-    const g = new THREE.MeshStandardMaterial({ name: mat.name, color: "#e7e4de", roughness: 0.95, metalness: 0 });
+    // strona jak w GLB (flaga doubleSided → mat.side). osiedle-v12: doubleSided true, bo bryły kontekstu SKP nie są
+    // zamknięte i jednostronny materiał pokazywał szczelinę z widokiem na ulicę (e3 R11, KONTEKST_3 za C/D).
+    // Od v13 96 daje odwrócone kopie lic i doubleSided false, więc wtedy FrontSide (bez podwójnego rysowania).
+    const g = new THREE.MeshStandardMaterial({ name: mat.name, color: "#e7e4de", roughness: 0.95, metalness: 0, side: mat.side });
     return g;
   }
   if (n.startsWith("LAMPA")) {
