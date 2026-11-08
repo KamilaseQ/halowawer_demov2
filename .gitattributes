@@ -1,0 +1,14 @@
+# Pliki binarne bez konwersji końców linii i bez łączenia diffów
+*.glb   binary
+*.webp  binary
+*.ktx2  binary
+*.hdr   binary
+*.png   binary
+*.jpg   binary
+*.jpeg  binary
+*.wasm  binary
+*.czesc-* binary
+
+# Skrypty powłoki (hook pre-commit) zawsze z końcami linii LF, także po checkoucie na Windows
+web/.githooks/* text eol=lf
+*.sh text eol=lf

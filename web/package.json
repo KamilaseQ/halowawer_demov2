@@ -7,7 +7,9 @@
     "dev": "vite --port 5180 --strictPort",
     "build": "tsc -b && vite build",
     "preview": "vite preview --port 5181",
-    "typecheck": "tsc -b --noEmit"
+    "typecheck": "tsc -b --noEmit",
+    "sprawdz-rozmiary": "node scripts/sprawdz-rozmiary.mjs",
+    "podziel-duze": "node scripts/podziel-duze.mjs"
   },
   "dependencies": {
     "@fontsource-variable/plus-jakarta-sans": "^5.3.0",

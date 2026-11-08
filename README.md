@@ -33,6 +33,14 @@ npm run build    → web/dist/ (statyczne pliki do wgrania na dowolny hosting)
 - **Metraże i ceny domów A, B** (oraz C i G, jeśli mają być pokazane): `web/src/data/domy.ts`.
 - **Azymut działki z mapy** (SKP ma North Angle = 0° bez georeferencji): `KAT_PN` w `web/src/lib/slonce.ts`; obraca razem słońce Nasłonecznienia i kompas.
 
+## Limit 100 MB na plik (GitHub)
+
+GitHub odrzuca pliki większe niż 100 MB. Dziś największy plik w repozytorium ma ok. 17 MB, ale zabezpieczenie działa na przyszłość:
+
+- `npm run sprawdz-rozmiary` (w `web/`): kontrola plików w indeksie gita, ostrzeżenie powyżej 50 MiB, błąd powyżej 95 MiB.
+- Hook przed commitem `web/.githooks/pre-commit` robi to samo automatycznie. Włącz go raz ręcznie: `git config core.hooksPath web/.githooks`.
+- `npm run podziel-duze` (w `web/`): model z `manifest.json` większy niż 95 MiB zostaje podzielony na części `*.czesc-01…` (po 90 MiB), opisane w `web/public/models/czesci.json`. Skrypt aktualizuje też białą listę `.gitignore`. Aplikacja skleja części przy wczytywaniu, z postępem w MB na ekranie ładowania, więc model działa bez zmian. Oryginał usuń z indeksu: `git rm --cached web/public/models/<plik>`.
+
 ## Struktura
 
 | Katalog | Zawartość |

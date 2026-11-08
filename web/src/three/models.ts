@@ -63,6 +63,11 @@ export function zakonczPlik(url: string) {
 }
 /** Zgłoszenie listy plików z rozmiarami (HEAD), żeby pasek znał całość od pierwszej sekundy. */
 export function zglosPliki(urls: string[]) {
+  // modele podzielone na części: zgłaszamy części (postęp liczony z ich pobierania)
+  urls = urls.flatMap((u) => {
+    const opis = czesci[u.slice(u.lastIndexOf("/") + 1)];
+    return opis ? opis.czesci.map((c) => u.slice(0, u.lastIndexOf("/") + 1) + c) : [u];
+  });
   for (const u of urls) {
     if (bajty.has(u)) continue;
     bajty.set(u, { pobrane: 0, razem: 0 });
@@ -91,9 +96,45 @@ export function useManifest(): Manifest {
     if (!r.ok) return {};
     const m = (await r.json()) as Manifest;
     for (const k of ["osiedle", "zielen", "okolica"] as const) if (q.get(k)) m[k] = q.get(k);
+    // modele podzielone na części (limit plików GitHuba 100 MB, scripts/podziel-duze.mjs): czesci.json
+    const rc = await fetch(`/models/czesci.json?t=${Date.now()}`, { cache: "no-store" }).catch(() => null);
+    czesci = rc && rc.ok ? ((await rc.json().catch(() => ({}))) as typeof czesci) : {};
     reg.manifest = m;
     return m;
   }, ["manifest"]);
+}
+
+/** plik modelu → jego części (gdy był większy niż limit repozytorium) */
+let czesci: Record<string, { czesci: string[]; bajty: number }> = {};
+
+/** Pobranie modelu złożonego z części: części pobierane równolegle, sklejane w jeden bufor GLB. */
+async function pobierzCzesci(url: string, opis: { czesci: string[]; bajty: number }): Promise<ArrayBuffer> {
+  const baza = url.slice(0, url.lastIndexOf("/") + 1);
+  const bufory = await Promise.all(
+    opis.czesci.map(async (c) => {
+      const adres = baza + c;
+      const r = await fetch(adres);
+      if (!r.ok || !r.body) throw new Error(`brak części modelu: ${adres}`);
+      const razem = +(r.headers.get("content-length") ?? 0);
+      const czytnik = r.body.getReader();
+      const kawalki: Uint8Array[] = [];
+      let pobrane = 0;
+      for (;;) {
+        const { done, value } = await czytnik.read();
+        if (done) break;
+        kawalki.push(value);
+        pobrane += value.length;
+        if (NOWE_LADOWANIE) postepPliku(adres, pobrane, razem);
+      }
+      if (NOWE_LADOWANIE) zakonczPlik(adres);
+      return kawalki;
+    }),
+  );
+  const wynik = new Uint8Array(opis.bajty);
+  let off = 0;
+  for (const kawalki of bufory) for (const k of kawalki) { wynik.set(k, off); off += k.length; }
+  if (off !== opis.bajty) throw new Error(`model ${url}: ${off} B zamiast ${opis.bajty} B`);
+  return wynik.buffer;
 }
 
 /* Jeden wspólny loader (meshopt + draco lokalnie), z postępem dla UI. */
@@ -135,7 +176,10 @@ function anizotropia(root: THREE.Object3D) {
 
 export function useGLB(url: string): GLTF {
   return suspend(async () => {
-    const g = await loader.loadAsync(url, NOWE_LADOWANIE ? (e: ProgressEvent) => postepPliku(url, e.loaded, e.total) : undefined);
+    const plik = url.slice(url.lastIndexOf("/") + 1);
+    const g = czesci[plik]
+      ? await loader.parseAsync(await pobierzCzesci(url, czesci[plik]), url.slice(0, url.lastIndexOf("/") + 1))
+      : await loader.loadAsync(url, NOWE_LADOWANIE ? (e: ProgressEvent) => postepPliku(url, e.loaded, e.total) : undefined);
     if (NOWE_LADOWANIE) zakonczPlik(url);
     anizotropia(g.scene);
     if (NOWE_LADOWANIE) drzewaBVH(g.scene);

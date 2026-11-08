@@ -1,0 +1,7 @@
+#!/bin/sh
+# Blokuje commit, jeśli którykolwiek plik w indeksie przekracza limit GitHuba (100 MB; próg kontroli 95 MiB).
+# Włączenie po sklonowaniu (raz, ręcznie): git config core.hooksPath web/.githooks
+node web/scripts/sprawdz-rozmiary.mjs || {
+  echo "Commit zatrzymany: plik większy niż limit. Podziel model: (w web/) npm run podziel-duze" >&2
+  exit 1
+}
