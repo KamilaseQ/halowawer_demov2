@@ -1,11 +1,11 @@
 {
-  "osiedle": "osiedle-v19.2.glb",
+  "osiedle": "osiedle-v20.glb",
   "uwagi": "",
-  "zielen": "zielen-v13.glb",
+  "zielen": "zielen-v14.glb",
   "okolica": "okolica-v9.glb",
   "wnetrza": {
-    "BLIZNIAK": "wnetrze-BLIZNIAK-v18.glb",
-    "SZEREG": "wnetrze-SZEREG-v12.glb"
+    "BLIZNIAK": "wnetrze-BLIZNIAK-v19.glb",
+    "SZEREG": "wnetrze-SZEREG-v13.glb"
   },
   "domy": {
     "A": {
@@ -29,7 +29,7 @@
         1
       ],
       "lightmapy": {
-        "KOND_0__PODLOGA": "tex/wnetrza-BLIZNIAK-v18-K0_podloga-L.webp",
+        "KOND_0__PODLOGA": "tex/wnetrza-BLIZNIAK-v19-K0_podloga-L.webp",
         "KOND_0__SCIANY": "tex/wnetrza-BLIZNIAK-v18-K0_arch-L.webp",
         "KOND_0__SUFIT": "tex/wnetrza-BLIZNIAK-v18-K0_arch-L.webp",
         "KOND_0__OKNA": "tex/wnetrza-BLIZNIAK-v18-K0_arch-L.webp",
@@ -40,7 +40,7 @@
         "KOND_1__OKNA": "tex/wnetrza-BLIZNIAK-v18-K1_arch-L.webp",
         "KOND_1__WYPOSAZENIE": "tex/wnetrza-BLIZNIAK-v18-K1_wyp-L.webp",
         "SCHODY": "tex/wnetrza-BLIZNIAK-v18-K0_arch-L.webp",
-        "KOND_1__WYPOSAZENIE_DYWAN": "tex/wnetrza-BLIZNIAK-v18-K1_wyp-L.webp",
+        "KOND_1__WYPOSAZENIE_DYWAN": "tex/wnetrza-BLIZNIAK-v19-K1_dywan-L.webp",
         "KOND_1__SCIANY_LUSTRO": "tex/wnetrza-BLIZNIAK-v18-K1_arch-L.webp",
         "DRZWI_B_3_007#render": "tex/wnetrza-BLIZNIAK-v18r-K0_arch-L.webp",
         "DRZWI_B_21#render": "tex/wnetrza-BLIZNIAK-v18r-K0_arch-L.webp",
@@ -73,7 +73,7 @@
         1
       ],
       "lightmapy": {
-        "KOND_0__PODLOGA": "tex/wnetrza-BLIZNIAK-v18-K0_podloga-L.webp",
+        "KOND_0__PODLOGA": "tex/wnetrza-BLIZNIAK-v19-K0_podloga-L.webp",
         "KOND_0__SCIANY": "tex/wnetrza-BLIZNIAK-v18-K0_arch-L.webp",
         "KOND_0__SUFIT": "tex/wnetrza-BLIZNIAK-v18-K0_arch-L.webp",
         "KOND_0__OKNA": "tex/wnetrza-BLIZNIAK-v18-K0_arch-L.webp",
@@ -84,7 +84,7 @@
         "KOND_1__OKNA": "tex/wnetrza-BLIZNIAK-v18-K1_arch-L.webp",
         "KOND_1__WYPOSAZENIE": "tex/wnetrza-BLIZNIAK-v18-K1_wyp-L.webp",
         "SCHODY": "tex/wnetrza-BLIZNIAK-v18-K0_arch-L.webp",
-        "KOND_1__WYPOSAZENIE_DYWAN": "tex/wnetrza-BLIZNIAK-v18-K1_wyp-L.webp",
+        "KOND_1__WYPOSAZENIE_DYWAN": "tex/wnetrza-BLIZNIAK-v19-K1_dywan-L.webp",
         "KOND_1__SCIANY_LUSTRO": "tex/wnetrza-BLIZNIAK-v18-K1_arch-L.webp",
         "DRZWI_B_3_007#render": "tex/wnetrza-BLIZNIAK-v18r-K0_arch-L.webp",
         "DRZWI_B_21#render": "tex/wnetrza-BLIZNIAK-v18r-K0_arch-L.webp",

@@ -7,6 +7,7 @@
 !/.gitignore
 !/.gitattributes
 !/README.md
+!/vercel.json
 !/web/
 
 # --- zależności, build, cache ---
@@ -36,11 +37,11 @@ desktop.ini
 # --- modele: tylko wersje wskazane w web/public/models/manifest.json ---
 # Po podmianie wersji w manifeście dopisz nowe pliki do listy wyjątków (stare wersje zostają lokalnie do porównań QA).
 /web/public/models/*.glb
-!/web/public/models/osiedle-v19.2.glb
-!/web/public/models/zielen-v13.glb
+!/web/public/models/osiedle-v20.glb
+!/web/public/models/zielen-v14.glb
 !/web/public/models/okolica-v9.glb
-!/web/public/models/wnetrze-BLIZNIAK-v18.glb
-!/web/public/models/wnetrze-SZEREG-v12.glb
+!/web/public/models/wnetrze-BLIZNIAK-v19.glb
+!/web/public/models/wnetrze-SZEREG-v13.glb
 # manifest kandydata do QA (?manifest=manifest-kandydat.json) nie jest częścią aplikacji
 /web/public/models/manifest-kandydat*.json
 
@@ -48,6 +49,8 @@ desktop.ini
 /web/public/models/tex/*
 !/web/public/models/tex/wnetrza-BLIZNIAK-v18-*.webp
 !/web/public/models/tex/wnetrza-BLIZNIAK-v18r-*.webp
+# v19 (09.11): posadzka parteru z przemalowanymi łatami dywanu salonu i płaski dywan w pokoju dziecka; reszta lightmap v18
+!/web/public/models/tex/wnetrza-BLIZNIAK-v19-*.webp
 !/web/public/models/tex/wnetrza-SZEREG-v12-*.webp
 !/web/public/models/tex/wnetrza-SZEREG-v12r-*.webp
 

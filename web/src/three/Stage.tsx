@@ -1,4 +1,5 @@
 import * as THREE from "three";
+import { wariantySkorupy } from "./przekroj";
 import { Suspense, useEffect, useMemo, useState } from "react";
 import { Canvas, useThree } from "@react-three/fiber";
 import { EffectComposer, SMAA, ToneMapping, Bloom, BrightnessContrast, Outline } from "@react-three/postprocessing";
@@ -64,7 +65,9 @@ function Rozgrzewka() {
       const m = (o as THREE.Mesh).material as THREE.MeshStandardMaterial | undefined;
       if (m && !Array.isArray(m) && m.lightMap && (m.lightMap as THREE.CompressedTexture).isCompressedTexture) gl.initTexture(m.lightMap);
     });
-    return gl.compileAsync(scene, camera).catch(() => {});
+    return gl.compileAsync(scene, camera).catch(() => {})
+      // wariant bryły domu w widoku kondygnacji (przekroj.ts: ustawSkorupe), żeby pierwsze wejście nie kompilowało shaderów
+      .then(() => wariantySkorupy(reg.domy.values(), () => gl.compileAsync(scene, camera).catch(() => {})));
     }).then(() => {
       for (const o of ukryte) o.visible = false;
       useStan.setState({}); // ponowne zastosowanie widoczności domów (subskrypcje HouseInterior)

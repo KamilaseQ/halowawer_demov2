@@ -4,6 +4,7 @@ import type { ThreeEvent } from "@react-three/fiber";
 import { useGLB, useManifest, modelUrl, reg, findAncestorDom, type DomInfo, NOWE_LADOWANIE } from "./models";
 import { WARSTWA_WNETRZ } from "./lustra";
 import { przygotujMaterial, oknoNoc } from "./materials";
+import { DALEKO } from "./przekroj";
 import { nav, useStan, type PunktSpaceru } from "../state/store";
 import type { DomId } from "../data/domy";
 
@@ -71,8 +72,15 @@ function prepare(scene: THREE.Object3D) {
       });
       // bryły domów także w odbiciu luster (warstwa wnętrza): z okna łazienki B widać w lustrze dom A
       if (NOWE_LADOWANIE) child.traverse((o) => o.layers.enable(WARSTWA_WNETRZ));
+      // płaszczyzna cięcia bryły w widokach kondygnacji (przekroj.ts: ustawSkorupe): na stałe w materiałach tego domu
+      // (klony per dom), DALEKO = bez cięcia; jeden wariant shadera skompilowany przy rozgrzewce
+      const ciecie = new THREE.Plane(new THREE.Vector3(0, -1, 0), DALEKO);
+      for (const c of clones.values()) {
+        c.clippingPlanes = [ciecie];
+        c.clipShadows = true;
+      }
       const box = new THREE.Box3().setFromObject(child);
-      const info: DomInfo = { id, obj: child, box, center: box.getCenter(new THREE.Vector3()), ground: box.min.y, meshes, mats };
+      const info: DomInfo = { id, obj: child, box, center: box.getCenter(new THREE.Vector3()), ground: box.min.y, meshes, mats, ciecie };
       reg.domy.set(id, info);
       reg.przeszkody.push(child);
       continue;

@@ -7,10 +7,14 @@ import { szybaWnetrze } from "./materials";
 import { useStan, type PunktSpaceru } from "../state/store";
 import type { DomId } from "../data/domy";
 import { rig } from "./CameraRig";
-import { utworzPrzekroj, ustawPrzekroj } from "./przekroj";
+import { utworzPrzekroj, ustawPrzekroj, ustawSkorupe, WIERZCH_SCIANY, PLASZCZYZNA_WNETRZ } from "./przekroj";
 
 /** wysokość cięcia rzutu nad posadzką kondygnacji (STANDARD_WIZUALNY §8a) */
 const CIECIE_RZUTU = 1.3;
+/** widok kondygnacji (Model 3D): cięcie tuż nad wierzchami ścian (extras.wierzch na KOND_n); bez extras (GLB sprzed v19/v13)
+    przybliżenie: posadzka + 2,68 m */
+const NAD_WIERZCHEM = 0.003;
+const WIERZCH_DOMYSLNY = 2.68;
 
 /** Który plik wnętrza i jaka macierz dla domu (manifest.domy). */
 export function interiorFor(man: ReturnType<typeof useManifest>, id: DomId | null) {
@@ -187,7 +191,7 @@ function prepareInterior(src: THREE.Object3D, macierz: number[] | null, lightmap
 const KOLEJNOSC = ["WEJSCIE", "HOL", "SALON", "JADALNIA", "KUCHNIA", "WC", "GARAZ", "SYPIALNIA", "POKOJ_DZIECKA", "POKOJ", "GABINET", "LAZIENKA"];
 
 function collect(root: THREE.Object3D, lightmapy?: Record<string, string>): WnetrzeInfo {
-  const info: WnetrzeInfo = { root, kadry: [], poziomy: {}, podlogi: [], punkty: [], kond: {}, sufity: {} };
+  const info: WnetrzeInfo = { root, kadry: [], poziomy: {}, podlogi: [], punkty: [], kond: {}, sufity: {}, wierzchy: {} };
   root.updateMatrixWorld(true);
   root.traverse((o) => {
     if (/^KADR_\d+$/.test(o.name)) {
@@ -199,7 +203,11 @@ function collect(root: THREE.Object3D, lightmapy?: Record<string, string>): Wnet
       info.kadry.push({ id: o.name, ref: ex.ref ?? "", pokoj: ex.pokoj ?? "", etykieta: ex.etykieta ?? "", fov: ex.fov ?? 60, near: ex.near ?? 0.05, pos, dir, spacer: sp } satisfies Kadr);
     }
     const km = /^KOND_(\d+)$/.exec(o.name);
-    if (km) info.kond[+km[1]] = o;
+    if (km) {
+      info.kond[+km[1]] = o;
+      const w = o.userData?.wierzch as number | undefined;
+      if (typeof w === "number") info.wierzchy![+km[1]] = o.localToWorld(new THREE.Vector3(0, w, 0)).y;
+    }
     const sm = /^KOND_(\d+)__SUFIT/.exec(o.name);
     if (sm) (info.sufity[+sm[1]] ??= []).push(o);
     const pm = /^KOND_(\d+)__PODLOGA/.exec(o.name);
@@ -255,6 +263,13 @@ function collect(root: THREE.Object3D, lightmapy?: Record<string, string>): Wnet
       }
     }
     const mesh = o as THREE.Mesh;
+    // wierzchy ścian (GLB od v19/v13): płaski kolor bez lightmapy, jasność wg pory dnia (przekroj.ts)
+    if (mesh.isMesh && (/__WIERZCHY$/.test(o.name) || /__WIERZCHY$/.test(o.parent?.name ?? ""))) {
+      mesh.material = WIERZCH_SCIANY;
+      mesh.castShadow = false;
+      mesh.receiveShadow = false;
+      return;
+    }
     if (mesh.isMesh) {
       if (NOWE_LADOWANIE) mesh.layers.enable(WARSTWA_WNETRZ);
       mesh.castShadow = true;
@@ -273,6 +288,8 @@ function collect(root: THREE.Object3D, lightmapy?: Record<string, string>): Wnet
   // (progi, podesty), przez co pigułka pięter pokazywała „1” na parterze
   for (const pt of info.punkty) if (pt.kond !== undefined) info.poziomy[pt.kond] = pt.pos[1];
   info.przekroj = utworzPrzekroj(root);
+  // druga poza skrzydeł drzwi (kadry 1:1) ma własne klony materiałów, poza siatkami: ta sama płaszczyzna cięcia
+  for (const d of info.drzwi ?? []) for (const l of d.lm ?? []) for (const m of Array.isArray(l.render) ? l.render : [l.render]) m.clippingPlanes = [PLASZCZYZNA_WNETRZ];
   // lustra (materiał LUSTRO*): odbicie planarne w osobnej grupie w układzie świata
   const lustra: THREE.Mesh[] = [];
   root.traverse((o) => {
@@ -317,14 +334,26 @@ function HouseInterior({ id, file, macierz, lightmapy }: { id: DomId; file: stri
       }
       const inside = active && (s.kond !== "dom" || s.tryb === "spacer" || s.tryb === "rzut");
       info.root.visible = inside;
-      const shell = reg.domy.get(id);
-      if (shell) shell.obj.visible = !inside;
-      // Rzut: przekrój na 1,3 m nad posadzką wybranej kondygnacji, z zamkniętymi wierzchami ścian
+      const walk = s.tryb === "spacer";
+      // Rzut: przekrój na 1,3 m nad posadzką wybranej kondygnacji, z zamkniętymi wierzchami ścian.
+      // Model 3D kondygnacji: cięcie tuż nad wierzchami ścian tej kondygnacji (ściany klatki schodowej z grupy parteru
+      // sięgały na piętro). Bryła domu z osiedla zostaje widoczna i jest cięta tą samą płaszczyzną: elewacja (tynk,
+      // okna, oświetlenie pory dnia) zamiast białej skorupy wnętrza bez elewacji (zgłoszenie użytkownika 09.11, zrzut 2).
       const rzut = inside && s.tryb === "rzut";
       const lvl = s.kond === "dom" ? 0 : (s.kond as number);
-      if (info.przekroj) ustawPrzekroj(info.przekroj, rzut ? (info.poziomy[lvl] ?? 0) + CIECIE_RZUTU : null, lvl);
+      let h: number | null = null;
+      if (inside && !walk) {
+        const pos = info.poziomy[lvl] ?? 0;
+        h = rzut ? pos + CIECIE_RZUTU : (info.wierzchy?.[lvl] ?? pos + WIERZCH_DOMYSLNY) + NAD_WIERZCHEM;
+      }
+      if (info.przekroj) h = ustawPrzekroj(info.przekroj, h, lvl, rzut);
+      const shell = reg.domy.get(id);
+      if (shell) {
+        // w spacerze wewnątrz bryła znika (kamera w środku); w widokach z góry zostaje, przycięta
+        shell.obj.visible = !inside || !walk;
+        ustawSkorupe(shell, inside && !walk ? h : null);
+      }
       if (!inside) return;
-      const walk = s.tryb === "spacer";
       const top = walk ? 99 : (s.kond as number);
       for (const [k, obj] of Object.entries(info.kond)) obj.visible = +k <= top;
       for (const [k, arr] of Object.entries(info.sufity)) for (const o of arr) o.visible = walk || +k < top;
@@ -334,7 +363,10 @@ function HouseInterior({ id, file, macierz, lightmapy }: { id: DomId; file: stri
     return () => {
       unsub();
       const shell = reg.domy.get(id);
-      if (shell) shell.obj.visible = true;
+      if (shell) {
+        shell.obj.visible = true;
+        ustawSkorupe(shell, null);
+      }
       if (info.przekroj) ustawPrzekroj(info.przekroj, null);
     };
   }, [id, info]);

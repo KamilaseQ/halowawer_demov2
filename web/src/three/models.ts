@@ -198,6 +198,8 @@ export interface DomInfo {
   meshes: THREE.Mesh[];
   /** Materiały tylko tego domu (klony) do podświetlenia. */
   mats: THREE.MeshStandardMaterial[];
+  /** płaszczyzna cięcia bryły tego domu (widoki kondygnacji, przekroj.ts: ustawSkorupe); materiały bryły to klony per dom */
+  ciecie: THREE.Plane;
 }
 
 /** Kamera sceny SKP (kadr renderu referencyjnego), kontrakt KADR_n (agent wnętrz). */
@@ -225,6 +227,8 @@ export interface WnetrzeInfo {
   sufity: Record<number, THREE.Object3D[]>;
   /** przekrój poziomy dla widoku Rzut (przekroj.ts) */
   przekroj?: Przekroj;
+  /** kond → wysokość wierzchów ścian (świat), z extras.wierzch na KOND_n (GLB od v19/v13) */
+  wierzchy?: Record<number, number>;
   /** start spaceru zapisany przy punkcie w GLB (PKT_n_* extras.spacer / extras.cel, świat) */
   startyPunktow?: Record<string, { pos: THREE.Vector3; cel: THREE.Vector3 }>;
   /** lustra (lustra.ts) */

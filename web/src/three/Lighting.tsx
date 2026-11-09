@@ -7,6 +7,7 @@ import { useStan, type Pora } from "../state/store";
 import { reg, useManifest, NOWE_LADOWANIE, postepPliku, zakonczPlik } from "./models";
 import { WARSTWA_WNETRZ } from "./lustra";
 import { lightmapMats } from "./Interiors";
+import { jasnoscWierzchow } from "./przekroj";
 import { sunPosition, KAT_PN } from "../lib/slonce";
 
 /* Pory dnia (STANDARD_WIZUALNY §5):
@@ -240,7 +241,14 @@ export function Lighting() {
     gl.toneMappingExposure = s.exp;
     for (const m of reg.szyby) m.emissiveIntensity = s.okna * 0.7 * ((m.userData.oknaK as number) ?? 1);
     for (const m of reg.lampy) m.emissiveIntensity = s.lampy;
-    const lmK = st.naslonecznienie ? 1 : st.pora === "noc" ? 0.22 : st.pora === "rano" ? 0.85 : 1;
+    // Światło dnia we wnętrzu: lightmapy są wypalone w dzień, więc w nasłonecznieniu przygasają razem z niebem
+    // (naslCfg: hemiI = dzień × sky, sky 0,2…1 wg wysokości słońca); wcześniej było stałe 1 i przy niskim słońcu
+    // albo po zmroku wnętrze świeciło na tle ciemnego osiedla (zgłoszenie użytkownika 09.11).
+    const dzienK = st.naslonecznienie ? Math.min(1, c.hemiI / PORY.dzien.hemiI) : st.pora === "noc" ? 0 : st.pora === "rano" ? 0.85 : 1;
+    const lmK = Math.max(0.22, dzienK);
+    // wierzchy ścian (płaski kolor bez lightmapy): jak powierzchnia na zewnątrz, w nocy ciemne
+    const wK = (window as unknown as { __wK?: number }).__wK ?? 0.12 + 0.88 * dzienK;
+    if (jasnoscWierzchow(wK)) invalidate();
     const lmDbg = window as unknown as { __lmEnv?: number; __lmK?: number };
     for (const m of lightmapMats) {
       m.lightMapIntensity = (m.userData.lmBase ?? 1) * lmK * (lmDbg.__lmK ?? 1);
