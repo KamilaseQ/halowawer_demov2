@@ -4,7 +4,7 @@ import { useFrame, useThree } from "@react-three/fiber";
 import { suspend } from "suspend-react";
 import { HDRLoader } from "three/examples/jsm/loaders/HDRLoader.js";
 import { useStan, type Pora } from "../state/store";
-import { reg, useManifest, NOWE_LADOWANIE, postepPliku, zakonczPlik } from "./models";
+import { reg, useManifest, NOWE_LADOWANIE, postepPliku, zakonczPlik, MOBILNE } from "./models";
 import { WARSTWA_WNETRZ } from "./lustra";
 import { lightmapMats } from "./Interiors";
 import { jasnoscWierzchow } from "./przekroj";
@@ -273,7 +273,7 @@ export function Lighting() {
       <directionalLight
         ref={sun}
         castShadow
-        shadow-mapSize={[4096, 4096]}
+        shadow-mapSize={MOBILNE ? [2048, 2048] : [4096, 4096]}
         shadow-bias={-0.00025}
         shadow-radius={3}
         shadow-blurSamples={12}

@@ -6,7 +6,7 @@ import { EffectComposer, SMAA, ToneMapping, Bloom, BrightnessContrast, Outline }
 import { N8AOPostPass } from "n8ao";
 import { ToneMappingMode } from "postprocessing";
 import { useStan } from "../state/store";
-import { useManifest, useGLB, modelUrl, initKtx2, reg, NOWE_LADOWANIE, LM_KTX2, zglosPliki } from "./models";
+import { useManifest, useGLB, modelUrl, initKtx2, reg, NOWE_LADOWANIE, LM_KTX2, zglosPliki, MOBILNE } from "./models";
 import { wczytajLightmapyKtx2 } from "./Interiors";
 import { Estate } from "./Estate";
 import { Interiors } from "./Interiors";
@@ -173,7 +173,7 @@ function Effects() {
     return p;
   }, [scene, camera]);
   return (
-    <EffectComposer multisampling={4} enableNormalPass={false} autoClear={false}>
+    <EffectComposer multisampling={MOBILNE ? 0 : 4} enableNormalPass={false} autoClear={false}>
       <primitive object={ao} />
       <Bloom intensity={pora === "noc" ? 0.55 : 0} luminanceThreshold={0.92} luminanceSmoothing={0.2} mipmapBlur />
       <ToneMapping mode={tmMode()} />
@@ -190,7 +190,7 @@ export function Stage() {
     <Canvas
       className="stage"
       frameloop="demand"
-      dpr={[1, 1.75]}
+      dpr={MOBILNE ? [1, 1.5] : [1, 1.75]}
       shadows={{ type: THREE.PCFShadowMap }}
       gl={{ antialias: false, powerPreference: "high-performance", preserveDrawingBuffer: true, stencil: false }}
       camera={{ fov: photoFov(aspect), near: 0.1, far: 4000, position: KAM.pozycja as [number, number, number] }}

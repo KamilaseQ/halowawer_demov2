@@ -42,6 +42,9 @@ desktop.ini
 !/web/public/models/okolica-v9.glb
 !/web/public/models/wnetrze-BLIZNIAK-v19.glb
 !/web/public/models/wnetrze-SZEREG-v13.glb
+# warianty dla telefonów (npm run mobilne): wnętrza z teksturami maks. 512 px
+!/web/public/models/wnetrze-BLIZNIAK-v19-m.glb
+!/web/public/models/wnetrze-SZEREG-v13-m.glb
 # manifest kandydata do QA (?manifest=manifest-kandydat.json) nie jest częścią aplikacji
 /web/public/models/manifest-kandydat*.json
 
@@ -53,6 +56,8 @@ desktop.ini
 !/web/public/models/tex/wnetrza-BLIZNIAK-v19-*.webp
 !/web/public/models/tex/wnetrza-SZEREG-v12-*.webp
 !/web/public/models/tex/wnetrza-SZEREG-v12r-*.webp
+# lightmapy dla telefonów (maks. 2048 px), robione z powyższych przez npm run mobilne
+!/web/public/models/tex/m/
 
 # HDRI nieużywane przez pory dnia (dostępne tylko testowo przez ?nochdr=)
 /web/public/env/qwantani_dusk_1_puresky.hdr

@@ -1,6 +1,6 @@
 import * as THREE from "three";
 import { Reflector } from "three/examples/jsm/objects/Reflector.js";
-import { NOWE_LADOWANIE } from "./models";
+import { NOWE_LADOWANIE, MOBILNE } from "./models";
 
 /** warstwa siatek wnętrz: kamera odbicia lustra widzi tylko ją (NOWE_LADOWANIE) */
 export const WARSTWA_WNETRZ = 2;
@@ -46,7 +46,8 @@ export function zbudujLustra(meshes: THREE.Mesh[], group: THREE.Group): Lustro[]
     const w = u1 - u0, h = v1 - v0;
     if (w < 0.05 || h < 0.05) continue;
     const center = new THREE.Vector3().addScaledVector(u, (u0 + u1) / 2).addScaledVector(v, (v0 + v1) / 2).addScaledVector(n, d + 0.003);
-    const res = 1024;
+    // MOBILNE: 512 px bez MSAA (lustro 1024 px HalfFloat z MSAA 4× to ok. 50 MB pamięci GPU, a lustra kolejnych domów się sumują)
+    const res = MOBILNE ? 512 : 1024;
     // kształt odbicia = kształt tafli z GLB (okrągłe lustro zostaje okrągłe). Wcześniej prostokąt z ramki
     // wychodził poza okrągłą ramę (b7, przegląd klienta 01, poz. 2). Wierzchołki tafli przenosimy do układu
     // lokalnego Reflectora: płaszczyzna XY, normalna +Z (lookAt), z = 0.
@@ -75,7 +76,7 @@ export function zbudujLustra(meshes: THREE.Mesh[], group: THREE.Group): Lustro[]
       textureHeight: Math.round(res * Math.min(1, h / w)),
       color: 0xd8d6d2,
       clipBias: 0.003,
-      multisample: 4,
+      multisample: MOBILNE ? 0 : 4,
     });
     refl.name = "LUSTRO_ODBICIE";
     if (NOWE_LADOWANIE) {

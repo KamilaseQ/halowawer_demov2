@@ -9,7 +9,8 @@
     "preview": "vite preview --port 5181",
     "typecheck": "tsc -b --noEmit",
     "sprawdz-rozmiary": "node scripts/sprawdz-rozmiary.mjs",
-    "podziel-duze": "node scripts/podziel-duze.mjs"
+    "podziel-duze": "node scripts/podziel-duze.mjs",
+    "mobilne": "node scripts/mobilne.mjs"
   },
   "dependencies": {
     "@fontsource-variable/plus-jakarta-sans": "^5.3.0",

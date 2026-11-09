@@ -21,6 +21,32 @@ export interface Manifest {
 
 export const modelUrl = (f: string) => `/models/${f}`;
 
+/** Telefony i tablety (iOS ma limit pamięci karty ok. 1–1,5 GB; pełne wnętrza z lightmapami go przekraczały
+    i przeglądarka zamykała kartę). Wnętrza z teksturami maks. 512 px (wnetrze-…-m.glb), lightmapy maks. 2048 px
+    (tex/m/), lżejszy obraz (Stage, Lighting). Pliki robi scripts/mobilne.mjs; gdy ich brak, wracamy do pełnych.
+    Test na komputerze: ?mobile=1 (albo ?mobile=0, żeby wyłączyć na telefonie). */
+export const MOBILNE = (() => {
+  const q = new URLSearchParams(location.search).get("mobile");
+  if (q === "1" || q === "0") return q === "1";
+  const ua = navigator.userAgent;
+  return /iPhone|iPad|iPod|Android/i.test(ua) || (/Macintosh/.test(ua) && navigator.maxTouchPoints > 1);
+})();
+/** wariant mobilny pliku (wnętrze GLB albo lightmapa), null gdy nie ma */
+export function adresMobilny(url: string): string | null {
+  if (!MOBILNE) return null;
+  if (/\/wnetrze-[^/]+\.glb$/.test(url) && !url.endsWith("-m.glb")) return url.replace(/\.glb$/, "-m.glb");
+  if (/\/tex\/[^/]+\.webp$/.test(url)) return url.replace(/\/tex\//, "/tex/m/");
+  return null;
+}
+/** MOBILNE: obraz tekstury (ImageBitmap) zwalniany zaraz po wysłaniu na GPU, żeby nie trzymać drugiej kopii w pamięci */
+export function zwolnijPoWysylce(t: THREE.Texture) {
+  if (!MOBILNE || typeof ImageBitmap === "undefined") return;
+  t.onUpdate = () => {
+    if (t.image instanceof ImageBitmap) t.image.close();
+    t.onUpdate = null;
+  };
+}
+
 /** Krok 2 planu użytkownika (docs/04-ladowanie.md): architektura ładowania i płynności. Domyślnie włączona
     od 08.11 (po zamknięciu kroku 1); stara ścieżka tylko do porównań: ?ladowanie=stare. */
 export const NOWE_LADOWANIE = new URLSearchParams(location.search).get("ladowanie") !== "stare";
@@ -177,11 +203,28 @@ function anizotropia(root: THREE.Object3D) {
 export function useGLB(url: string): GLTF {
   return suspend(async () => {
     const plik = url.slice(url.lastIndexOf("/") + 1);
+    const postep = NOWE_LADOWANIE ? (e: ProgressEvent) => postepPliku(url, e.loaded, e.total) : undefined;
+    const mobilny = adresMobilny(url);
     const g = czesci[plik]
       ? await loader.parseAsync(await pobierzCzesci(url, czesci[plik]), url.slice(0, url.lastIndexOf("/") + 1))
-      : await loader.loadAsync(url, NOWE_LADOWANIE ? (e: ProgressEvent) => postepPliku(url, e.loaded, e.total) : undefined);
+      : mobilny
+        ? await loader.loadAsync(mobilny, postep).catch(() => loader.loadAsync(url, postep))
+        : await loader.loadAsync(url, postep);
     if (NOWE_LADOWANIE) zakonczPlik(url);
     anizotropia(g.scene);
+    if (MOBILNE) {
+      // obraz zwalniamy tylko, gdy ma jedną teksturę (GLTFLoader klonuje tekstury ze wspólnym obrazem przy innym samplerze,
+      // a każdy klon wysyła obraz na GPU osobno)
+      const wgObrazu = new Map<THREE.Texture["source"], Set<THREE.Texture>>();
+      g.scene.traverse((o) => {
+        const m = (o as THREE.Mesh).material;
+        if (m) for (const mat of Array.isArray(m) ? m : [m]) for (const k of TEX_KEYS) {
+          const t = (mat as unknown as Record<string, THREE.Texture | null>)[k];
+          if (t) { const s = wgObrazu.get(t.source) ?? new Set(); s.add(t); wgObrazu.set(t.source, s); }
+        }
+      });
+      for (const s of wgObrazu.values()) if (s.size === 1) zwolnijPoWysylce([...s][0]);
+    }
     if (NOWE_LADOWANIE) drzewaBVH(g.scene);
     return g;
   }, ["glb", url]);

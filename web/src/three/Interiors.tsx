@@ -2,7 +2,7 @@ import * as THREE from "three";
 import { Suspense, useEffect, useMemo } from "react";
 import { useFrame } from "@react-three/fiber";
 import { zbudujLustra, synchronizujLustra, WARSTWA_WNETRZ } from "./lustra";
-import { useGLB, useManifest, modelUrl, reg, anizotropiaMax, NOWE_LADOWANIE, LM_KTX2, ktx2Loader, postepPliku, zakonczPlik, zglosPliki, type WnetrzeInfo, type Kadr } from "./models";
+import { useGLB, useManifest, modelUrl, reg, anizotropiaMax, NOWE_LADOWANIE, LM_KTX2, ktx2Loader, postepPliku, zakonczPlik, zglosPliki, MOBILNE, adresMobilny, zwolnijPoWysylce, type WnetrzeInfo, type Kadr } from "./models";
 import { szybaWnetrze } from "./materials";
 import { useStan, type PunktSpaceru } from "../state/store";
 import type { DomId } from "../data/domy";
@@ -96,33 +96,53 @@ export function wczytajLightmapyKtx2(): Promise<void> {
   return lmKtx2Obietnica;
 }
 
+/** MOBILNE: lightmapy ostatnio wybranego domu; przy wyborze innego domu zwalniamy te, których nowy nie używa */
+let lmAktywne = new Set<THREE.Texture>();
+const PUSTY_OBRAZ = typeof document !== "undefined" ? Object.assign(document.createElement("canvas"), { width: 1, height: 1 }) : null;
+
 /** NOWE_LADOWANIE: dekodowanie (w tle) lightmap jednego domu, gdy zostanie wybrany. */
 function zaladujLightmapy(info: WnetrzeInfo) {
-  const tekstury = new Set<THREE.Texture>();
+  const wszystkie = new Set<THREE.Texture>();
   const zbierz = (m: THREE.Material | THREE.Material[]) => {
     for (const x of Array.isArray(m) ? m : [m]) {
       const lm = (x as THREE.MeshStandardMaterial).lightMap;
-      if (lm?.userData.url && !lm.userData.ladowanie) tekstury.add(lm);
+      if (lm?.userData.url) wszystkie.add(lm);
     }
   };
   info.root.traverse((o) => { const m = (o as THREE.Mesh).material; if (m) zbierz(m); });
   for (const d of info.drzwi ?? []) for (const l of d.lm ?? []) zbierz(l.render);
-  for (const tex of tekstury) {
+  if (MOBILNE) {
+    for (const tex of lmAktywne) {
+      if (wszystkie.has(tex) || !tex.userData.wczytana) continue;
+      tex.dispose(); // GPU; przy powrocie do domu lightmapa wczyta się od nowa
+      tex.image = PUSTY_OBRAZ;
+      tex.userData.ladowanie = tex.userData.wczytana = false;
+    }
+    lmAktywne = wszystkie;
+  }
+  for (const tex of wszystkie) {
+    if (tex.userData.ladowanie) continue;
     tex.userData.ladowanie = true;
     reg.lmOczekujace++;
     useStan.setState({ lmLaduja: reg.lmOczekujace });
-    bitmapLoader.load(
-      tex.userData.url as string,
+    const url = tex.userData.url as string;
+    const gotowe = () => { reg.lmOczekujace--; useStan.setState({ lmLaduja: reg.lmOczekujace }); };
+    const wczytaj = (adres: string, dalej?: () => void) => bitmapLoader.load(
+      adres,
       (bmp) => {
         tex.image = bmp;
         tex.needsUpdate = true;
-        reg.lmOczekujace--;
-        useStan.setState({ lmLaduja: reg.lmOczekujace });
+        tex.userData.wczytana = true;
+        zwolnijPoWysylce(tex);
+        gotowe();
         rig.invalidate();
       },
       undefined,
-      () => { reg.lmOczekujace--; useStan.setState({ lmLaduja: reg.lmOczekujace }); },
+      () => (dalej ? dalej() : gotowe()),
     );
+    const mob = adresMobilny(url);
+    if (mob) wczytaj(mob, () => wczytaj(url));
+    else wczytaj(url);
   }
 }
 
