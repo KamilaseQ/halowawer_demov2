@@ -6,13 +6,15 @@ import { DOM_IDS, type DomId } from "../data/domy";
    #/osiedle?zdjecie=1
    #/osiedle?tryb=spacer&punkt=PKT_OGRODY_A_B&pora=noc
    #/dom/D?kond=1
-   #/dom/D?tryb=spacer&punkt=PKT_0_SALON                                   */
+   #/dom/D?tryb=spacer&punkt=PKT_0_SALON
+   #/kreator                       (kreator wnętrza; widok makiety pod spodem zostaje bez zmian)          */
 
 function parse(hash: string) {
   const [path, q = ""] = hash.replace(/^#\/?/, "").split("?");
   const parts = path.split("/").filter(Boolean);
   const qs = new URLSearchParams(q);
-  const out: Partial<ReturnType<typeof useStan.getState>> = {};
+  if (parts[0] === "kreator") return { kreator: true };
+  const out: Partial<ReturnType<typeof useStan.getState>> = { kreator: false };
   if (parts[0] === "dom" && DOM_IDS.includes(parts[1] as DomId)) {
     out.widok = "dom";
     out.dom = parts[1] as DomId;
@@ -43,6 +45,7 @@ function parse(hash: string) {
 }
 
 function serialize(s: ReturnType<typeof useStan.getState>) {
+  if (s.kreator) return "#/kreator";
   const qs = new URLSearchParams();
   if (s.widok === "osiedle" && s.tryb === "model" && !s.naslonecznienie) qs.set("zdjecie", s.zdjecie ? "1" : "0");
   if (s.tryb !== "model") qs.set("tryb", s.tryb);
@@ -58,10 +61,14 @@ function serialize(s: ReturnType<typeof useStan.getState>) {
 
 export function useRouteSync() {
   useEffect(() => {
-    const apply = () => useStan.getState().set(parse(location.hash));
+    let last = location.hash;
+    const apply = () => {
+      // last nadąża za adresem także przy wstecz/dalej: inaczej powrót do widoku sprzed cofnięcia nie dodałby wpisu
+      last = location.hash;
+      useStan.getState().set(parse(location.hash));
+    };
     apply();
     window.addEventListener("hashchange", apply);
-    let last = location.hash;
     const unsub = useStan.subscribe((s) => {
       const h = serialize(s);
       if (h !== last && h !== location.hash) {

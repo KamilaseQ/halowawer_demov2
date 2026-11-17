@@ -25,7 +25,8 @@ npm run build    → web/dist/ (statyczne pliki do wgrania na dowolny hosting)
 - **Pory dnia**: Rano / Dzień / Noc (zmierzch z ciepłymi oknami i lampami ogrodowymi).
 - **Nasłonecznienie**: prawdziwe słońce dla wybranego miesiąca i godziny (52,2°N, czas CET/CEST); cienie przypięte do stron świata.
 - **Pozostałe**: kompas, zoom, zrzut ekranu, ukrywanie etykiet, notka „Położenie budynków poglądowe”.
-- **Stan w adresie**, np. `#/dom/B?kond=1`, `#/dom/G?tryb=spacer&punkt=PKT_0_SALON`, `#/osiedle?zdjecie=0&nasl=12-12`.
+- **Kreator wnętrza** (przycisk „Wykończ mieszkanie pod siebie” w prawym dolnym rogu, adres `#/kreator`): mieszkanie 3D z wypalonym światłem, makieta z góry i spacer po pięciu pomieszczeniach, światło Wieczór / Dzień, 8 gotowych stylów, 9 podłóg z odcieniami, kolory ścian, sufitu, zabudowy, drewna, tkanin i kamienia (także własny kolor), kliknięcie elementu w scenie, zapis wyboru w przeglądarce. Pokazowe mieszkanie z innego projektu: demonstruje możliwości, nie jest wnętrzem domów z osiedla.
+- **Stan w adresie**, np. `#/dom/B?kond=1`, `#/dom/G?tryb=spacer&punkt=PKT_0_SALON`, `#/osiedle?zdjecie=0&nasl=12-12`, `#/kreator`.
 - Działa na komputerze i telefonie.
 
 ## Do uzupełnienia przez klienta
@@ -41,12 +42,20 @@ GitHub odrzuca pliki większe niż 100 MB. Dziś największy plik w repozytorium
 - Hook przed commitem `web/.githooks/pre-commit` robi to samo automatycznie. Włącz go raz ręcznie: `git config core.hooksPath web/.githooks`.
 - `npm run podziel-duze` (w `web/`): model z `manifest.json` większy niż 95 MiB zostaje podzielony na części `*.czesc-01…` (po 90 MiB), opisane w `web/public/models/czesci.json`. Skrypt aktualizuje też białą listę `.gitignore`. Aplikacja skleja części przy wczytywaniu, z postępem w MB na ekranie ładowania, więc model działa bez zmian. Oryginał usuń z indeksu: `git rm --cached web/public/models/<plik>`.
 
+## Kreator wnętrza
+
+- Kod: `web/src/kreator/` (`silnik.js`: scena three.js, materiały, spacer; `dane.js`: style, palety, pokoje; `materialy.json`: oryginalne materiały ze sceny `.max`). Ładowany leniwie, osobny plik JS (ok. 31 kB gzip), więc nie spowalnia startu makiety.
+- Pliki: `web/public/kreator/` (ok. 20 MB): `apartment.glb` (ok. 12 MB, geometria z UV lightmapy), `tex/lightmap.jpg` (wypalone światło wieczoru), `tex/probes.png` (sondy światła dla mebli), skany materiałów `tex/m*.jpg`, skany podłóg. `tex/m/`: skany maks. 512 px dla telefonów (ok. 33 zamiast 140 MB pamięci GPU), jak wnętrza makiety.
+- Gdy kreator jest otwarty, makieta nie renderuje (`frameloop="never"`); przy zamknięciu kreator zwalnia swój kontekst WebGL. Wejście prosto w `#/kreator` wczytuje makietę osiedla dopiero po zamknięciu kreatora.
+- Źródła 3D mieszkania (`apartment.max`, `.fbx`, `.obj`, `textures.zip`, razem ok. 1,6 GB) zostają poza repozytorium (`.gitignore`: `*.max`, `*.fbx`, `*.obj`, `*.zip`). Aplikacja ich nie czyta.
+
 ## Struktura
 
 | Katalog | Zawartość |
 |---|---|
 | `web/` | aplikacja (Vite + React + three.js / R3F) |
 | `web/public/models/` | modele GLB + `manifest.json` (która wersja jest używana) |
+| `web/src/kreator/`, `web/public/kreator/` | kreator wnętrza: kod i pliki 3D |
 | `pipeline/`, `work/` | konwersja zewnętrza SKP → Blender → GLB |
 | `pipeline_wnetrza/`, `work_wnetrza/` | konwersja wnętrz, materiały, wypalone światło (Cycles) |
 | `kontrola_wizualna/` | standard wizualny, raporty iteracji, narzędzie pomiaru ΔE, protokoły odbioru |

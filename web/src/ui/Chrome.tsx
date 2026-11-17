@@ -6,8 +6,39 @@ import { rig } from "../three/CameraRig";
 import { dzien, fmtGodz, kierunek, MIESIACE, MIESIACE_DOP, MIESIACE_KR, sunPosition } from "../lib/slonce";
 import { reg, NOWE_LADOWANIE } from "../three/models";
 import {
-  IcoSun, IcoCamera, IcoChevL, IcoChevR, IcoCube, IcoDown, IcoEye, IcoEyeOff, IcoHome, IcoImage, IcoLeft, IcoMinus, IcoPlan, IcoPlus, IcoUp, IcoWalk, IcoX,
+  IcoSun, IcoCamera, IcoChevL, IcoChevR, IcoCube, IcoDown, IcoEye, IcoEyeOff, IcoHome, IcoImage, IcoLeft, IcoMinus, IcoPlan, IcoPlus, IcoRoller, IcoUp, IcoWalk, IcoX,
 } from "./icons";
+
+/* ---------- kreator wnętrza: duży szklany przycisk w prawym dolnym rogu ---------- */
+export function KreatorCta() {
+  const kreator = useStan((s) => s.kreator);
+  const galeria = useStan((s) => s.galeria);
+  const spacer = useStan((s) => s.tryb === "spacer");
+  const nasl = useStan((s) => s.naslonecznienie);
+  if (kreator || galeria !== null) return null;
+  return (
+    <button className={`kreator-cta${spacer ? " w-spacerze" : ""}${nasl ? " nad-sloncem" : ""}`} onClick={() => nav.kreator(true)}>
+      <span className="kc-ico">
+        <IcoRoller />
+      </span>
+      <span className="kc-txt">
+        <small>Kreator wnętrza 3D</small>
+        <b>
+          Wykończ mieszkanie<span className="kc-reszta"> pod siebie</span>
+        </b>
+      </span>
+    </button>
+  );
+}
+
+/** na czas pobierania kodu kreatora (osobny plik JS) */
+export function KreatorOslona() {
+  return (
+    <div className="kreator-oslona">
+      <div className="karta glass">Otwieram kreator wnętrza…</div>
+    </div>
+  );
+}
 
 /* ---------- lewy górny róg ---------- */
 export function TopLeft() {

@@ -33,6 +33,12 @@ desktop.ini
 *.blend1
 *.tmp
 *.bak
+# źródła 3D kreatora wnętrza (apartment.max/.fbx/.obj, textures.zip: razem ok. 1,6 GB) zostają poza gitem;
+# aplikacja czyta tylko web/public/kreator/ (apartment.glb ok. 12 MB i tekstury JPG)
+*.max
+*.fbx
+*.obj
+*.zip
 
 # --- modele: tylko wersje wskazane w web/public/models/manifest.json ---
 # Po podmianie wersji w manifeście dopisz nowe pliki do listy wyjątków (stare wersje zostają lokalnie do porównań QA).

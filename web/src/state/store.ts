@@ -50,6 +50,8 @@ interface Stan {
   /** kondygnacja, na której jest kamera w spacerze po domu (pigułka pięter); null poza spacerem */
   poziomSpaceru: number | null;
   galeria: number | null;
+  /** kreator wnętrza otwarty na całym ekranie (#/kreator); makieta pod spodem nie renderuje */
+  kreator: boolean;
   set: (p: Partial<Stan>) => void;
 }
 
@@ -79,8 +81,12 @@ export const useStan = create<Stan>((set) => ({
   postep: 0,
   poziomSpaceru: null,
   galeria: null,
+  kreator: false,
   set: (p) => set(p),
 }));
+
+/** kreator otwarty przyciskiem w aplikacji: zamknięcie cofa wpis historii zamiast dokładać nowy */
+let kreatorZAplikacji = false;
 
 /* Akcje nawigacji (jedno miejsce, żeby UI i scena zmieniały stan spójnie). */
 export const nav = {
@@ -94,5 +100,19 @@ export const nav = {
     const s = useStan.getState();
     if (t === "galeria") return s.set({ galeria: 0 });
     s.set({ tryb: t, punkt: null, zdjecie: false, galeria: null, kond: t === "rzut" && s.kond === "dom" ? 0 : s.kond });
+  },
+  /** kreator wnętrza: otwarcie z przycisku albo powrót do makiety w tym samym miejscu, w którym była */
+  kreator(otworz: boolean) {
+    const s = useStan.getState();
+    if (otworz) {
+      kreatorZAplikacji = true;
+      return s.set({ kreator: true, galeria: null, hover: null });
+    }
+    if (kreatorZAplikacji && location.hash.startsWith("#/kreator")) {
+      kreatorZAplikacji = false;
+      return history.back(); // hashchange przywróci poprzedni widok (route.ts)
+    }
+    kreatorZAplikacji = false;
+    s.set({ kreator: false });
   },
 };

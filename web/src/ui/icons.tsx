@@ -40,6 +40,9 @@ export const IcoDoor = () => (
 export const IcoPhoto = () => (
   <S><rect x="3.5" y="5" width="17" height="14" rx="2" /><path d="m3.5 16 5-4.5 4 3.5 2.5-2 5 4" /></S>
 );
+export const IcoRoller = () => (
+  <S><rect x="4" y="3.5" width="13" height="5" rx="1.3" /><path d="M17 6h2.5v5.5H11.5V14" /><rect x="10" y="14" width="3" height="6.5" rx="1" /></S>
+);
 export const IcoSun = () => (
   <S><circle cx="12" cy="12" r="3.6" /><path d="M12 3v2M12 19v2M3 12h2M19 12h2M5.6 5.6l1.4 1.4M17 17l1.4 1.4M5.6 18.4 7 17M17 7l1.4-1.4" /></S>
 );

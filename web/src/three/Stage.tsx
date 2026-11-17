@@ -184,12 +184,27 @@ function Effects() {
   );
 }
 
+/** Po zamknięciu kreatora wnętrza: świeża klatka (płótno mogło zmienić rozmiar, gdy makieta stała). */
+function WznowPoKreatorze() {
+  const kreator = useStan((s) => s.kreator);
+  const { invalidate } = useThree();
+  useEffect(() => {
+    if (!kreator) {
+      reg.odswiezCienie();
+      invalidate();
+    }
+  }, [kreator, invalidate]);
+  return null;
+}
+
 export function Stage() {
   const aspect = typeof window !== "undefined" ? window.innerWidth / window.innerHeight : 1.6;
+  // kreator wnętrza zasłania makietę i ma własny kontekst WebGL: makieta w tym czasie nie liczy klatek
+  const kreator = useStan((s) => s.kreator);
   return (
     <Canvas
       className="stage"
-      frameloop="demand"
+      frameloop={kreator ? "never" : "demand"}
       dpr={MOBILNE ? [1, 1.5] : [1, 1.75]}
       shadows={{ type: THREE.PCFShadowMap }}
       gl={{ antialias: false, powerPreference: "high-performance", preserveDrawingBuffer: true, stencil: false }}
@@ -218,6 +233,7 @@ export function Stage() {
       }}
     >
       <CameraRig />
+      <WznowPoKreatorze />
       <Suspense fallback={null}>
         <World />
         <Walk />
